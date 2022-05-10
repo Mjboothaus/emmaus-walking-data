@@ -1,0 +1,13 @@
+numpy
+pandas
+sqlite_utils
+streamlit
+pathlib
+streamlit_folium
+folium
+st_aggrid
+sqlite3
+pendulum
+reverse_geocoder
+healthkit-to-sqlite
+tomli
