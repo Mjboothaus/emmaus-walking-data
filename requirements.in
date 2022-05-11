@@ -5,8 +5,7 @@ streamlit
 pathlib
 streamlit_folium
 folium
-st_aggrid
-sqlite3
+streamlit-aggrid
 pendulum
 reverse_geocoder
 healthkit-to-sqlite
