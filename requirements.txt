@@ -60,6 +60,8 @@ entrypoints==0.4
     #   altair
     #   jupyter-client
     #   nbconvert
+et-xmlfile==1.1.0
+    # via openpyxl
 executing==0.8.3
     # via stack-data
 fastjsonschema==2.15.3
@@ -162,6 +164,8 @@ numpy==1.22.3
     #   reverse-geocoder
     #   scipy
     #   streamlit
+openpyxl==3.0.9
+    # via -r requirements.in
 packaging==21.3
     # via
     #   ipykernel
