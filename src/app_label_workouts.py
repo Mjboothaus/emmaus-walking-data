@@ -17,10 +17,11 @@ db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_
 DATA_URL = Path("data/walk_info_df.xlsx")
 data = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
 
+
 df = data.copy()
 df.sort_values(by="start_datetime", inplace=True)
 df.reset_index(inplace=True)
-# st.write(df.dtypes)
+
 df["index"] = df.index
 
 # Select some rows using st.multiselect. This will break down when you have >1000 rows.
