@@ -7,24 +7,40 @@ from streamlit_folium import folium_static
 import folium
 from st_aggrid import AgGrid
 
+# Labelling / grouping approach relies on the sorting by workout start time
+
 st.set_page_config(layout="wide")
 
 def plot_walk_points(walk_points, map_handle, linecolour, linewidth):
     folium.PolyLine(walk_points, color=linecolour, weight=linewidth).add_to(map_handle)
 
+def create_walk_map(query_df):
+    start_coord = (0, 0)
+    map_handle = folium.Map(start_coord, zoom_start=13, detect_retina=True, control_scale=True)
+    plot_walk_points(query_df.values, map_handle, 'blue', 3)
+    map_handle.fit_bounds(map_handle.get_bounds())
+    folium_static(map_handle, width=500, height=200)
+
+
 db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_db_2022_04_28.sqlite"))
 
 DATA_URL = Path("data/walk_info_df.xlsx")
-data = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
+data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
 
+data_df.sort_values(by="start_datetime", inplace=True)
+data_df.reset_index(inplace=True)
 
-df = data.copy()
-df.sort_values(by="start_datetime", inplace=True)
-df.reset_index(inplace=True)
+data_df["index"] = data_df.index
 
-df["index"] = df.index
+walk_groups_df = pd.read_excel("data/walk_groups.xlsx")
 
-# Select some rows using st.multiselect. This will break down when you have >1000 rows.
+walk_group = walk_groups_df["walk_group"].to_list()
+
+workout_groups_df = pd.read_csv("data/workout_groups.csv")
+
+st.dataframe(workout_groups_df)
+
+last_labelled_workout_id = workout_groups_df.loc[workout_groups_df.index[-1], "workout_id"]
 
 display_columns = [
   "index",
@@ -57,38 +73,34 @@ display_columns = [
   # "index"]
 
 
-st.markdown("### Full Dataset")
+# st.markdown("### Full Dataset")
 
-grid = AgGrid(df[display_columns], editable=True)
+grid = AgGrid(data_df[display_columns], editable=True)
 grid_df = grid["data"]
 
-selected_indices = st.multiselect('Select rows:', df.index)
 
-walk_group_options = ["nan", "GNW1", "GWW1"]
+next_row_index = data_df.loc[data_df["workout_id"] == last_labelled_workout_id].index + 1
 
-if selected_indices != []:
+# next_workout_id = data_df.loc[next_row_index]["workout_id"]
 
-    st.write('### Selected Rows')
+##TODO: Continue here - weird stuff happening e.g. query is a DataFrame??
 
-    for row in selected_indices:
-        selected_row = df[display_columns].loc[row]
-        print(selected_row)
-        st.write(selected_row)
+st.write("### Last workout without a group")
 
-        walk_group = st.selectbox("Walk group?", walk_group_options)
-        # st.write(walk_group)
+selected_row = data_df[display_columns].loc[next_row_index]
+st.write(selected_row)
 
-        if walk_group != "nan":
-            df["walk_group"].loc[row] = walk_group
+walk_group_selected = st.selectbox("Walk group?", walk_group)
 
-        query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
-        query += selected_row['workout_id'] + '"'
 
-        data_df = pd.read_sql_query(query, db.conn)
+query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
+query += selected_row['workout_id'] + '"'
 
-        start_coord = (0, 0)
+st.write(query)
 
-        map_handle = folium.Map(start_coord, zoom_start=13, detect_retina=True, control_scale=True)
-        plot_walk_points(data_df.values, map_handle, 'blue', 3)
-        map_handle.fit_bounds(map_handle.get_bounds())
-        folium_static(map_handle, width=500, height=200)
+query_df = pd.read_sql_query(query, db.conn)
+
+create_walk_map(query_df)
+
+st.metric(selected_row['workout_id'], walk_group_selected)
+
