@@ -26,6 +26,10 @@ def save_workout_label(workout_id, walk_group):
     csv_str = "\n" + workout_id + "," + str(walk_group)
     f.write(csv_str)
 
+def save_new_walk_group(walk_group):
+  with open("data/walk_groups.csv", "a") as f:
+    csv_str = "\n" + str(walk_group) + ",TO_BE_DEFINED"
+    f.write(csv_str)
 
 db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_db_2022_04_28.sqlite"))
 
@@ -37,7 +41,7 @@ data_df.reset_index(inplace=True)
 
 data_df["index"] = data_df.index
 
-walk_groups_df = pd.read_excel("data/walk_groups.xlsx")
+walk_groups_df = pd.read_csv("data/walk_groups.csv")
 walk_group = walk_groups_df["walk_group"].to_list()
 
 workouts_labelled_df= pd.read_csv("data/workouts_labelled.csv")
@@ -94,10 +98,17 @@ query_df = pd.read_sql_query(query, db.conn)
 
 create_walk_map(query_df)
 
-walk_group_selected = st.selectbox("Walk group?", walk_group)
-#st.metric(next_workout_id, walk_group_selected)
+#TODO: Allow for creation of new walk_group (change walk_groups.xlsx to csv)
 
-if st.button("Save walk group"):
+new_walk = st.text_input("New walk group")
+if st.button("Save new group") and len(new_walk) > 2:
+  save_new_walk_group(new_walk)
+  new_walk.
+  st.experimental_rerun()
+
+walk_group_selected = st.selectbox("Walk group label?", walk_group)
+
+if st.button("Save walk label"):
   save_workout_label(next_workout_id, walk_group_selected)
   st.info("File saved")
   st.experimental_rerun()
