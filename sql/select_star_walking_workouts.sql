@@ -13,7 +13,7 @@ select
     metadata_hkaveragemets
 from
     workouts
-where workoutactivitytype = "HKWorkoutActivityTypeWalking" order by id
+where workoutactivitytype = "HKWorkoutActivityTypeWalking" or workoutactivitytype = "HKWorkoutActivityTypeHiking" order by id
 
 
  /* Excluded fields:
