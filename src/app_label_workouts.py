@@ -26,25 +26,23 @@ def save_workout_label(workout_id, walk_group):
     csv_str = "\n" + workout_id + "," + str(walk_group)
     f.write(csv_str)
 
-def save_new_walk_group(walk_group):
+def save_new_walk_group(walk_group, walk_group_name):
   with open("data/walk_groups.csv", "a") as f:
-    csv_str = "\n" + str(walk_group) + ",TO_BE_DEFINED"
+    csv_str = "\n" + '"' + str(walk_group).upper() + '","'  + walk_group_name + '"'
     f.write(csv_str)
 
 db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_db_2022_04_28.sqlite"))
 
-DATA_URL = Path("data/walk_info_df.xlsx")
+DATA_URL = Path("data/workouts_summary.xlsx")
 data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
-
 data_df.sort_values(by="start_datetime", inplace=True)
 data_df.reset_index(inplace=True)
-
 data_df["index"] = data_df.index
 
 walk_groups_df = pd.read_csv("data/walk_groups.csv")
 walk_group = walk_groups_df["walk_group"].to_list()
 
-workouts_labelled_df= pd.read_csv("data/workouts_labelled.csv")
+workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
 last_labelled_workout_id = workouts_labelled_df.loc[workouts_labelled_df.index[-1], "workout_id"]
 
 display_columns = [
@@ -77,12 +75,39 @@ display_columns = [
   # "metadata_HKAverageMETs",
   # "index"]
 
-# grid = AgGrid(data_df[display_columns], editable=True)
-# grid_df = grid["data"]
+st.header("HealthKit workout labeller")
 
-next_row_index = data_df["workout_id"].loc[data_df["workout_id"] == last_labelled_workout_id].index + 1
+# sidebar
 
-selected_row = data_df[display_columns].loc[next_row_index]
+placeholder1 = st.sidebar.empty()
+placeholder2 = st.sidebar.empty()
+
+input1 = placeholder1.text_input("New walk group e.g. GNW")
+input2 = placeholder2.text_input("New walk group name e.g. Great North Walk")
+
+save_group = st.sidebar.button("Save new walk group", key=1)
+if save_group and len(input1) > 2:
+    save_new_walk_group(input1, input2)
+    input1 = placeholder1.text_input("New walk group e.g. GNW", value="", key=1)
+    input2 = placeholder2.text_input("New walk group name e.g. Great North Walk", value="", key=1)   
+
+st.sidebar.markdown('##')
+
+display_all = st.sidebar.checkbox("Display all workouts (in grid)")
+threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 1)
+
+data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
+
+data_filtered_df.reset_index(drop=True, inplace=True)
+
+if display_all is True:
+  st.markdown("### All workouts - " + str(len(data_filtered_df)))
+  grid = AgGrid(data_filtered_df[display_columns], editable=True)
+  grid_df = grid["data"]
+
+next_row_index = data_filtered_df["workout_id"].loc[data_filtered_df["workout_id"] == last_labelled_workout_id].index + 1
+
+selected_row = data_filtered_df[display_columns].loc[next_row_index]
 next_workout_id = selected_row["workout_id"].iloc[0]
 
 st.write("### Next workout without a label")
@@ -90,23 +115,15 @@ st.write("### Next workout without a label")
 query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
 query += next_workout_id + '"'
 
-st.write(data_df[display_columns][data_df["workout_id"] == next_workout_id].T)
-
-#TODO: Display other meta data to assist with workout labelling
+st.write(data_filtered_df[display_columns][data_filtered_df["workout_id"] == next_workout_id].T)
 
 query_df = pd.read_sql_query(query, db.conn)
 
 create_walk_map(query_df)
 
-#TODO: Allow for creation of new walk_group (change walk_groups.xlsx to csv)
-
-new_walk = st.text_input("New walk group")
-if st.button("Save new group") and len(new_walk) > 2:
-  save_new_walk_group(new_walk)
-  new_walk.
-  st.experimental_rerun()
-
 walk_group_selected = st.selectbox("Walk group label?", walk_group)
+
+st.write(walk_groups_df["walk_group_name"][walk_groups_df["walk_group"] == walk_group_selected].iloc[0])
 
 if st.button("Save walk label"):
   save_workout_label(next_workout_id, walk_group_selected)
