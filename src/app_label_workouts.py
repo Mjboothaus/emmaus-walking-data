@@ -31,7 +31,9 @@ def save_new_walk_group(walk_group, walk_group_name):
     csv_str = "\n" + '"' + str(walk_group).upper() + '","'  + walk_group_name + '"'
     f.write(csv_str)
 
-db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_db_2022_04_28.sqlite"))
+db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_db_2022_05_11.sqlite"))
+
+# Create a button to run conversion script & calculation of workouts_summary
 
 DATA_URL = Path("data/workouts_summary.xlsx")
 data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
@@ -96,6 +98,8 @@ if save_group and len(input1) > 2:
 st.sidebar.markdown('##')
 
 display_all = st.sidebar.checkbox("Display all workouts (in grid)")
+st.sidebar.markdown('##')
+
 threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 1)
 
 # filter data & do calculations
