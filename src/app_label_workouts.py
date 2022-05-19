@@ -75,8 +75,6 @@ display_columns = [
   # "metadata_HKAverageMETs",
   # "index"]
 
-st.header("HealthKit workout labeller")
-
 # sidebar
 
 placeholder1 = st.sidebar.empty()
@@ -86,31 +84,40 @@ input1 = placeholder1.text_input("New walk group e.g. GNW")
 input2 = placeholder2.text_input("New walk group name e.g. Great North Walk")
 
 save_group = st.sidebar.button("Save new walk group", key=1)
+
 if save_group and len(input1) > 2:
     save_new_walk_group(input1, input2)
     input1 = placeholder1.text_input("New walk group e.g. GNW", value="", key=1)
-    input2 = placeholder2.text_input("New walk group name e.g. Great North Walk", value="", key=1)   
-
+    input2 = placeholder2.text_input("New walk group name e.g. Great North Walk", value="", key=1)
+    # update walk_group info if new group created   
+    walk_groups_df = pd.read_csv("data/walk_groups.csv")
+    walk_group = walk_groups_df["walk_group"].to_list()
+  
 st.sidebar.markdown('##')
 
 display_all = st.sidebar.checkbox("Display all workouts (in grid)")
 threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 1)
 
-data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
+# filter data & do calculations
 
+data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
 data_filtered_df.reset_index(drop=True, inplace=True)
+
+next_row_index = data_filtered_df["workout_id"].loc[data_filtered_df["workout_id"] == last_labelled_workout_id].index + 1
+
+next_row = data_filtered_df[display_columns].loc[next_row_index]
+next_workout_id = next_row["workout_id"].iloc[0]
+
+# main page
+
+st.header("HealthKit workout labeller")
 
 if display_all is True:
   st.markdown("### All workouts - " + str(len(data_filtered_df)))
   grid = AgGrid(data_filtered_df[display_columns], editable=True)
   grid_df = grid["data"]
 
-next_row_index = data_filtered_df["workout_id"].loc[data_filtered_df["workout_id"] == last_labelled_workout_id].index + 1
-
-selected_row = data_filtered_df[display_columns].loc[next_row_index]
-next_workout_id = selected_row["workout_id"].iloc[0]
-
-st.write("### Next workout without a label")
+st.write("### Next workout to label")
 
 query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
 query += next_workout_id + '"'
@@ -118,7 +125,6 @@ query += next_workout_id + '"'
 st.write(data_filtered_df[display_columns][data_filtered_df["workout_id"] == next_workout_id].T)
 
 query_df = pd.read_sql_query(query, db.conn)
-
 create_walk_map(query_df)
 
 walk_group_selected = st.selectbox("Walk group label?", walk_group)
