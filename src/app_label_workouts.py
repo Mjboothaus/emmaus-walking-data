@@ -109,33 +109,39 @@ data_filtered_df.reset_index(drop=True, inplace=True)
 
 next_row_index = data_filtered_df["workout_id"].loc[data_filtered_df["workout_id"] == last_labelled_workout_id].index + 1
 
-next_row = data_filtered_df[display_columns].loc[next_row_index]
-next_workout_id = next_row["workout_id"].iloc[0]
+if next_row_index >= len(data_filtered_df):
+  st.write(next_row_index, len(data_filtered_df))
+  st.info("Finished labelling - stopping")
+else:
+  next_row = data_filtered_df[display_columns].loc[next_row_index]
+  next_workout_id = next_row["workout_id"].iloc[0]
 
-# main page
+  # main page
 
-st.header("HealthKit workout labeller")
+  st.header("HealthKit workout labeller")
 
-if display_all is True:
-  st.markdown("### All workouts - " + str(len(data_filtered_df)))
-  grid = AgGrid(data_filtered_df[display_columns], editable=True)
-  grid_df = grid["data"]
+  if display_all is True:
+    st.markdown("### All workouts - " + str(len(data_filtered_df)))
+    grid = AgGrid(data_filtered_df[display_columns], editable=True)
+    grid_df = grid["data"]
 
-st.write("### Next workout to label")
+  st.write("### Next workout to label")
 
-query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
-query += next_workout_id + '"'
+  query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
+  query += next_workout_id + '"'
 
-st.write(data_filtered_df[display_columns][data_filtered_df["workout_id"] == next_workout_id].T)
+  st.write(data_filtered_df[display_columns][data_filtered_df["workout_id"] == next_workout_id].T)
 
-query_df = pd.read_sql_query(query, db.conn)
-create_walk_map(query_df)
+  query_df = pd.read_sql_query(query, db.conn)
+  create_walk_map(query_df)
 
-walk_group_selected = st.selectbox("Walk group label?", walk_group)
+  walk_group_selected = st.selectbox("Walk group label?", walk_group)
 
-st.write(walk_groups_df["walk_group_name"][walk_groups_df["walk_group"] == walk_group_selected].iloc[0])
+  st.write(walk_groups_df["walk_group_name"][walk_groups_df["walk_group"] == walk_group_selected].iloc[0])
 
-if st.button("Save walk label"):
-  save_workout_label(next_workout_id, walk_group_selected)
-  st.info("File saved")
-  st.experimental_rerun()
+  if st.button("Save walk label"):
+    save_workout_label(next_workout_id, walk_group_selected)
+    st.info("File saved")
+    st.experimental_rerun()
+
+    
