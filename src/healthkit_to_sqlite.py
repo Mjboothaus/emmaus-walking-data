@@ -51,7 +51,12 @@ def convert_healthkit_export_to_sqlite(export_zip):
             ".zip", "_" + zip_file_date.to_date_string().replace("-", "_") + ".zip"
         )
     )
-    Path(db_file).rename(db_file_with_date)
+    db_file_with_date = Path(db_file).rename(db_file_with_date)
+
+    # TODO: move this file to the local data directory - .replace() method
+
+    db_file_data_dir = Path(__file__).parent.parent / "data" / db_file_with_date.name
+    db_file_with_date.replace(db_file_data_dir)
 
     return db_file_with_date, sp_output
 

@@ -1,12 +1,14 @@
-from numpy import empty
-import streamlit as st
-import pandas as pd
-from pathlib import Path
-from sqlite_utils import Database
-from streamlit_folium import folium_static
-import folium
-from st_aggrid import AgGrid
 import os
+from pathlib import Path
+
+import folium
+import pandas as pd
+import streamlit as st
+from numpy import empty
+from sqlite_utils import Database
+from st_aggrid import AgGrid
+from streamlit_folium import folium_static
+
 from healthkit_to_sqlite import main_convert_create_walk_summary
 
 # Labelling / grouping approach relies on the sorting by workout start time
@@ -53,7 +55,6 @@ if menu_choice == "Convert HealthKit export to DB":
     path_export_zip = st.text_input(label="Enter path to export.zip")
     disabled = path_export_zip == "" or Path(path_export_zip).exists() is False
 
-
     include_location = st.checkbox(
         "Include location lookup for start/finish points? [this takes much longer to run]"
     )
@@ -66,12 +67,8 @@ if menu_choice == "Convert HealthKit export to DB":
 else:
 
     db = Database(
-        Path(
-            "/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_db_2022_05_11.sqlite"
-        )
-    )
-
-    # Create a button to run conversion script (create SQLite D) & calculation of workouts_summary
+        Path("data/healthkit_db_2022_05_30.sqlite")
+    )  # TODO: Need to look in data directory for latest .sqlite
 
     DATA_URL = Path("data/workouts_summary.xlsx")
     data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
@@ -79,35 +76,45 @@ else:
     data_df.reset_index(inplace=True)
     data_df["index"] = data_df.index
 
-    walk_groups_df = pd.read_csv("data/walk_groups.csv")
-    walk_group = walk_groups_df["walk_group"].to_list()
+    if Path("data/walk_groups.csv").exists() is True:
+        walk_groups_df = pd.read_csv("data/walk_groups.csv")
+        walk_group = walk_groups_df["walk_group"].to_list()
+    else:
+        # Create default walk_groups.csv
+        walk_group = []
+        with open("data/walk_groups.csv", "a") as walk_groups_csv:
+            walk_groups_csv.write('"walk_group","walk_group_name"')
 
-    workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
-    last_labelled_workout_id = workouts_labelled_df.loc[
-        workouts_labelled_df.index[-1], "workout_id"
-    ]
+    if Path("data/workouts_labelled.csv").exists() is True:
+        data_unlabelled = False
+        workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
+        last_labelled_workout_id = workouts_labelled_df.loc[
+            workouts_labelled_df.index[-1], "workout_id"
+        ]
+    else:
+        data_unlabelled = True
+        last_labelled_workout_id = 0
 
-    display_columns = [
-        "index",
-        "start_datetime",
-        # "start_latitude",
-        # "start_longitude",
-        # "start_altitude",
-        # "start_speed",
-        "workout_id",
-        # "finish_datetime",
-        # "finish_latitude",
-        # "finish_longitude",
-        # "finish_altitude",
-        # "finish_speed",
-        "start_location",
-        "finish_location",
-        "elapsed_time_hours",
-        # "duration_minutes",
-        "totaldistance_km",
-    ]
+    if "start_location" in data_df.keys() and "finish_location" in data_df.keys():
+        display_columns = [
+            "index",
+            "start_datetime",
+            "workout_id",
+            "start_location",
+            "finish_location",
+            "elapsed_time_hours",
+            "totaldistance_km",
+        ]
+    else:
+        display_columns = [
+            "index",
+            "start_datetime",
+            "workout_id",
+            "elapsed_time_hours",
+            "totaldistance_km",
+        ]
 
-    # sidebar
+    # Sidebar
 
     placeholder1 = st.sidebar.empty()
     placeholder2 = st.sidebar.empty()
@@ -139,26 +146,29 @@ else:
     data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
     data_filtered_df.reset_index(drop=True, inplace=True)
 
-    next_row_index = (
-        data_filtered_df["workout_id"]
-        .loc[data_filtered_df["workout_id"] == last_labelled_workout_id]
-        .index
-        + 1
-    )
+    if data_unlabelled:
+        next_row_index = 0
+    else:
+        next_row_index = (
+            data_filtered_df["workout_id"]
+            .loc[data_filtered_df["workout_id"] == last_labelled_workout_id]
+            .index
+            + 1
+        )
 
     if next_row_index >= len(data_filtered_df):
         st.write(next_row_index, len(data_filtered_df))
         st.info("Finished labelling - stopping")
     else:
         next_row = data_filtered_df[display_columns].loc[next_row_index]
-        next_workout_id = next_row["workout_id"].iloc[0]
+        next_workout_id = next_row["workout_id"]
 
-        # main page
+        # Main page
 
-        st.header("HealthKit workout labeller")
+        st.header("Workout/group labeller")
 
         if display_all is True:
-            st.markdown("### All workouts - " + str(len(data_filtered_df)))
+            st.markdown(f"### All workouts - {len(data_filtered_df)}")
             grid = AgGrid(data_filtered_df[display_columns], editable=True)
             grid_df = grid["data"]
 
@@ -178,11 +188,12 @@ else:
 
         walk_group_selected = st.selectbox("Walk group label?", walk_group)
 
-        st.write(
-            walk_groups_df["walk_group_name"][
-                walk_groups_df["walk_group"] == walk_group_selected
-            ].iloc[0]
-        )
+        if walk_group != []:
+          st.write(
+              walk_groups_df["walk_group_name"][
+                  walk_groups_df["walk_group"] == walk_group_selected
+              ].iloc[0]
+          )
 
         if st.button("Save walk label"):
             save_workout_label(next_workout_id, walk_group_selected)
