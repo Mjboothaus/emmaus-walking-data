@@ -60,7 +60,7 @@ def create_df_from_sql_query_in_file(
     filename_dot_sql, conn, parse_dates, echo_query=False
 ):
 
-    query_file = Path.cwd().parent / "sql" / filename_dot_sql
+    query_file = Path(__file__).parent.parent / "sql" / filename_dot_sql
 
     with open(query_file, "r") as query:
         sql_text = query.read()
@@ -71,7 +71,7 @@ def create_df_from_sql_query_in_file(
 
 
 def create_walk_workout_summary(
-    db_file, output_file="../data/workouts_summary.xlsx", include_location=False
+    db_file, output_file=Path(__file__).parent.parent / "data/workouts_summary.xlsx", include_location=False
 ):
     if db_file is None or Path(db_file).exists() is False:
         print("SQLite database doesn't exist or not found")
@@ -138,6 +138,3 @@ def main_convert_create_walk_summary(path_export_zip, include_location=False):
         db_file, include_location=include_location
     )
     return db_file, output_file
-
-
-# db_file, output_file = main_convert_create_walk_summary(export_zip, include_location=False)
