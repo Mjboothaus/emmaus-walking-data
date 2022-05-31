@@ -25,11 +25,21 @@ The determination of the start / finish latitude and longitude points for each w
 https://developer.apple.com/documentation/healthkit/hkworkout
 ### App Functionality
 
-The app `app_label_workouts.py` [TODO: Rename this app] has two pieces of functionality i.e.
-i. Convert HealthKit export to DB and ii. Label/group walks.
+The app `app_prepare_data.py` has three pieces of functionality which can be selected in
+the main menu section of the app sidebar. These are:
 
-#### Conversion
+i. Convert HealthKit export to SQLite
+ii. Pre-calculate workout summary, and
+iii. Label/group walks.
 
+#### Convert HealthKit export to SQLite
+
+Choose _Export All Health Data_ on your iPhone and save the generated file (`export.zip`) somewhere convenient.
+Specify the location (path) of the `export.zip` that you wish to convert to a SQLite database.
+The button only becomes active when a valid location in provided. Press the button to perform the conversion (which typically takes 2-3 minutes to complete).
+
+
+#### Pre-calculate workout summary
 
 
 #### Label/group walks
