@@ -117,9 +117,12 @@ else:
     if Path("data/workouts_labelled.csv").exists() is True:
         data_unlabelled = False
         workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
-        st.dataframe(workouts_labelled_df)
-        last_labelled_workout_id = workouts_labelled_df.loc[
-            workouts_labelled_df.index[-1], "workout_id"
+        if workouts_labelled_df.empty:
+            last_labelled_workout_id = 0
+            data_unlabelled = True
+        else:
+            last_labelled_workout_id = workouts_labelled_df.loc[
+                workouts_labelled_df.index[-1], "workout_id"
         ]
     else:
         data_unlabelled = True
@@ -193,7 +196,7 @@ else:
         st.info("Finished labelling - stopping")
     else:
         next_row = data_filtered_df[display_columns].loc[next_row_index]
-        next_workout_id = next_row["workout_id"]
+        next_workout_id = next_row["workout_id"].iloc[0]
 
         # Main page
 
