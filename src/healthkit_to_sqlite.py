@@ -135,11 +135,3 @@ def create_walk_workout_summary(
 
     workouts_summary_df.to_excel(output_file, index=False)
     return Path(output_file)
-
-
-def main_convert_create_walk_summary(path_export_zip, include_location=False):
-    db_file, _ = convert_healthkit_export_to_sqlite(path_export_zip)
-    output_file = create_walk_workout_summary(
-        db_file, include_location=include_location
-    )
-    return db_file, output_file

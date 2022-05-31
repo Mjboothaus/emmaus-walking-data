@@ -9,7 +9,10 @@ from sqlite_utils import Database
 from st_aggrid import AgGrid
 from streamlit_folium import folium_static
 
-from healthkit_to_sqlite import main_convert_create_walk_summary
+from healthkit_to_sqlite import (
+    convert_healthkit_export_to_sqlite,
+    create_walk_workout_summary,
+)
 
 # Labelling / grouping approach relies on the sorting by workout start time
 
@@ -42,33 +45,59 @@ def save_new_walk_group(walk_group, walk_group_name):
         f.write(csv_str)
 
 
+def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
+    return max(Path(data_dir).glob(file_pattern), key=lambda f: f.stat().st_ctime)
+
+
 # Start with export.zip
 
 menu_choice = st.sidebar.radio(
-    "Main menu:", ["Convert HealthKit export to DB", "Label/group walks"]
+    "Main menu:",
+    [
+        "Convert HealthKit export to SQLite",
+        "Calculate workout summary",
+        "Label/group walks",
+    ],
 )
 
-if menu_choice == "Convert HealthKit export to DB":
-
+if menu_choice == "Convert HealthKit export to SQLite":
     st.subheader("Convert HealthKit data (export.zip) to SQLite database")
+
+    data_dir = Path(__file__).parent.parent / "data"
+    st.text_input(
+        label="Most recent SQLite database (in data directory)",
+        value=get_latest_sqlite_file(data_dir),
+    )
 
     path_export_zip = st.text_input(label="Enter path to export.zip")
     disabled = path_export_zip == "" or Path(path_export_zip).exists() is False
 
+    if convert_button := st.button("Convert export.zip", disabled=disabled):
+        with st.spinner(text="In progress..."):
+            db_file, _ = convert_healthkit_export_to_sqlite(Path(path_export_zip))
+        st.write(db_file)
+
+elif menu_choice == "Calculate workout summary":
+    st.subheader("Calculate workout summary")
+    data_dir = Path(__file__).parent.parent / "data"
+    db_file = get_latest_sqlite_file(data_dir)
+    st.text_input(
+        label="Most recent SQLite database (in data directory)", value=db_file
+    )
+
     include_location = st.checkbox(
         "Include location lookup for start/finish points? [this takes much longer to run]"
     )
-    if convert_button := st.button("Convert export.zip", disabled=disabled):
+
+    if calc_button := st.button(label="Calculate summary"):
         with st.spinner(text="In progress..."):
-            db_file, output_file = main_convert_create_walk_summary(
-                Path(path_export_zip), include_location
+            summary_file = create_walk_workout_summary(
+                db_file, include_location=include_location
             )
-        st.write(db_file, output_file)
+        st.write(summary_file)
 else:
 
-    db = Database(
-        Path("data/healthkit_db_2022_05_30.sqlite")
-    )  # TODO: Need to look in data directory for latest .sqlite
+    db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
 
     DATA_URL = Path("data/workouts_summary.xlsx")
     data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
@@ -88,12 +117,15 @@ else:
     if Path("data/workouts_labelled.csv").exists() is True:
         data_unlabelled = False
         workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
+        st.dataframe(workouts_labelled_df)
         last_labelled_workout_id = workouts_labelled_df.loc[
             workouts_labelled_df.index[-1], "workout_id"
         ]
     else:
         data_unlabelled = True
         last_labelled_workout_id = 0
+        with open("data/workouts_labelled.csv", "a") as workouts_labelled_csv:
+            workouts_labelled_csv.write("workout_id,walk_group")
 
     if "start_location" in data_df.keys() and "finish_location" in data_df.keys():
         display_columns = [
@@ -189,11 +221,11 @@ else:
         walk_group_selected = st.selectbox("Walk group label?", walk_group)
 
         if walk_group != []:
-          st.write(
-              walk_groups_df["walk_group_name"][
-                  walk_groups_df["walk_group"] == walk_group_selected
-              ].iloc[0]
-          )
+            st.write(
+                walk_groups_df["walk_group_name"][
+                    walk_groups_df["walk_group"] == walk_group_selected
+                ].iloc[0]
+            )
 
         if st.button("Save walk label"):
             save_workout_label(next_workout_id, walk_group_selected)
