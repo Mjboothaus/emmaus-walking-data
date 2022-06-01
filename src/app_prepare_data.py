@@ -172,7 +172,7 @@ else:
         walk_group = walk_groups_df["walk_group"].to_list()
 
     st.sidebar.markdown("##")
-    threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 1)
+    threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 0)
     
     st.sidebar.markdown("##")
 
@@ -197,9 +197,13 @@ else:
         st.write(next_row_index, len(data_filtered_df))
         st.info("Finished labelling - stopping")
     else:
-        next_row = data_filtered_df[display_columns].loc[next_row_index]
+        # following is a hack as for some reason Pandas sometimes returns a dataframe with a single row, and other times a series. 
+        try:
+            next_row = data_filtered_df[display_columns].iloc[[next_row_index], :]
+        except:
+            next_row = data_filtered_df[display_columns].iloc[next_row_index]
         next_workout_id = next_row["workout_id"].iloc[0]
-
+     
         # Main page
 
         st.header("Workout/group labeller")
