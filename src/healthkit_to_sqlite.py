@@ -133,5 +133,5 @@ def create_walk_workout_summary(
         workouts_df, how="inner", on="workout_id"
     )
 
-    workouts_summary_df.to_excel(output_file, index=False)
+    workouts_summary_df.to_csv(output_file, index=False)
     return Path(output_file)
