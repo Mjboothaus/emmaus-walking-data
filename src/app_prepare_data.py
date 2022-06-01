@@ -59,6 +59,7 @@ menu_choice = st.sidebar.radio(
         "Label/group walks",
     ],
 )
+st.sidebar.markdown("##")
 
 if menu_choice == "Convert HealthKit export to SQLite":
     st.subheader("Convert HealthKit data (export.zip) to SQLite database")
@@ -96,7 +97,6 @@ elif menu_choice == "Calculate workout summary":
             )
         st.write(summary_file)
 else:
-
     db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
 
     DATA_URL = Path("data/workouts_summary.csv")
@@ -151,6 +151,8 @@ else:
 
     # Sidebar
 
+    st.sidebar.markdown("## Add new walk group")
+
     placeholder1 = st.sidebar.empty()
     placeholder2 = st.sidebar.empty()
 
@@ -170,11 +172,11 @@ else:
         walk_group = walk_groups_df["walk_group"].to_list()
 
     st.sidebar.markdown("##")
-
-    display_all = st.sidebar.checkbox("Display all workouts (in grid)")
+    threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 1)
+    
     st.sidebar.markdown("##")
 
-    threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 1)
+    display_all = st.sidebar.checkbox("Display all workouts (in grid)")
 
     # filter data & do calculations
 
