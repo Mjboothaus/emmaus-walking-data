@@ -76,7 +76,7 @@ def create_df_from_sql_query_in_file(
 
 
 def create_walk_workout_summary(
-    db_file, output_file=Path(__file__).parent.parent / "data/workouts_summary.xlsx", include_location=False
+    db_file, output_file=Path(__file__).parent.parent / "data/workouts_summary.csv", include_location=False
 ):
     if db_file is None or Path(db_file).exists() is False:
         print("SQLite database doesn't exist or not found")

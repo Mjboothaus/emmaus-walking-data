@@ -31,7 +31,7 @@ db = Database(Path("/Users/mjboothaus/icloud/Data/apple_health_export/healthkit_
 
 # Create a button to run conversion script & calculation of workouts_summary
 
-DATA_URL = Path("data/workouts_summary.xlsx")
+DATA_URL = Path("data/workouts_summary.csv")
 data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
 
 

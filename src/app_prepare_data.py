@@ -99,7 +99,7 @@ else:
 
     db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
 
-    DATA_URL = Path("data/workouts_summary.xlsx")
+    DATA_URL = Path("data/workouts_summary.csv")
     data_df = pd.read_excel(DATA_URL, parse_dates=["start_datetime"])
     data_df.sort_values(by="start_datetime", inplace=True)
     data_df.reset_index(inplace=True)
