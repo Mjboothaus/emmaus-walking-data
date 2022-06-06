@@ -3,8 +3,6 @@ pip-compile:
 
 venv-reqs:
 	python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt 
-	# source .venv/bin/activate 
 
-install-kernel:
+install-jupyter-kernel:
 	python -m ipykernel install --user --name=.venv
-
