@@ -21,6 +21,7 @@ the main menu section of the app sidebar. These are:
 #### Convert HealthKit export to SQLite
 
 Choose _Export All Health Data_ on your iPhone and save the generated file (`export.zip`) somewhere convenient.
+
 Specify the location (path) of the `export.zip` that you wish to convert to a SQLite database.
 The button only becomes active when a valid location in provided. Press the button to perform the conversion (which typically should take 2-3 minutes to complete).
 
@@ -48,9 +49,28 @@ The SQL queries are located in the `sql` directory. There are 3 relevant queries
 1. `select_star_walking_workouts.sql` - extract all of the walking and hiking workouts
 2. `select_start_point_workout.sql` - for each workout determine the starting latitude and longitude
 3. `select_finish_point_workout.sql` - for each workout determine the finishing latitude and longitude.
+
 #### Label/group walks
 
-Describe app functionality - e.g. threshold for excluding 
+
+
+How the labelling (grouping) works. First select the option from the main menu.
+
+The labelling has a simple design - aiming at a 'one-pass' approach.
+
+##### Sidebar
+New walk groups can be added in the sidebar at any time. Initially there are no groups defined (hence the walk group label dropdown is greyed out with no options to select). These walk groups are stored in the file `data/walk_groups.csv` with two columns `walk_group` (the chosen short-name/abbreviation and `walk_group_name` (the full name of the walk).
+
+The minimum distance threshold (in km) slider can be used for excluding walks/hikes under a chosen length and these are removed from the set of walks to be labelled. Currently the maximum minimum distance threshold that can be chosen is 10km - this can be changed in the code `MAX_MIN_DISTANCE_THRESHOLD`
+
+The checkbox "Display workout summary", when selected, displays a grid view of all of the walks within the set to be labelled for information purposes.
+
+#####
+TODO: Can it be resumed?
+TODO: Change / disable "Save walk label" when no walk groups defined.
+
+Input:
+`data/workouts_summary.csv`
 
 Input / Output:
 `data/walk_groups.csv`

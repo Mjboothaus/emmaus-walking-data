@@ -1,5 +1,8 @@
 import os
+import warnings
 from pathlib import Path
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import folium
 import pandas as pd
@@ -15,6 +18,8 @@ from healthkit_to_sqlite import (
 )
 
 # Labelling / grouping approach relies on the sorting by workout start time
+
+MAX_MIN_DISTANCE_THRESHOLD = 50
 
 st.set_page_config(layout="wide")
 
@@ -46,6 +51,7 @@ def save_new_walk_group(walk_group, walk_group_name):
 
 
 def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
+    # print(Path(data_dir).glob(file_pattern))
     return max(Path(data_dir).glob(file_pattern), key=lambda f: f.stat().st_ctime)
 
 
@@ -123,7 +129,7 @@ else:
         else:
             last_labelled_workout_id = workouts_labelled_df.loc[
                 workouts_labelled_df.index[-1], "workout_id"
-        ]
+            ]
     else:
         data_unlabelled = True
         last_labelled_workout_id = 0
@@ -172,11 +178,17 @@ else:
         walk_group = walk_groups_df["walk_group"].to_list()
 
     st.sidebar.markdown("##")
-    threshold = st.sidebar.slider("Minimum distance threshold (km)", 0, 10, 0)
-    
+    MAX_WALK_LENGTH = data_df["totaldistance_km"].max()
+    threshold = st.sidebar.slider(
+        "Minimum distance threshold (km)",
+        0,
+        int(min(MAX_MIN_DISTANCE_THRESHOLD, MAX_WALK_LENGTH)) + 1,
+        0,
+    )
+
     st.sidebar.markdown("##")
 
-    display_all = st.sidebar.checkbox("Display all workouts (in grid)")
+    display_all = st.sidebar.checkbox("Display workout summary")
 
     # filter data & do calculations
 
@@ -194,17 +206,16 @@ else:
         )
 
     if next_row_index >= len(data_filtered_df):
-        st.write(next_row_index, len(data_filtered_df))
         st.info("Finished labelling - stopping")
     else:
-        # following is a hack as for some reason Pandas sometimes returns a dataframe with a single row, and other times a series. 
+        # following is a hack as for some reason Pandas sometimes returns a dataframe with a single row, and other times a series.
         try:
             next_row = data_filtered_df[display_columns].iloc[[next_row_index], :]
-        except:
+        except Exception:
             next_row = data_filtered_df[display_columns].iloc[next_row_index]
         next_workout_id = next_row["workout_id"].iloc[0]
-     
-        # Main page
+
+        # Main page - Label/group walks
 
         st.header("Workout/group labeller")
 
@@ -230,13 +241,16 @@ else:
         walk_group_selected = st.selectbox("Walk group label?", walk_group)
 
         if walk_group != []:
+            save_walk_disabled = False
             st.write(
                 walk_groups_df["walk_group_name"][
                     walk_groups_df["walk_group"] == walk_group_selected
                 ].iloc[0]
             )
+        else:
+            save_walk_disabled = True
 
-        if st.button("Save walk label"):
+        if st.button("Save walk label", disabled=save_walk_disabled):
             save_workout_label(next_workout_id, walk_group_selected)
             st.info("File saved")
             st.experimental_rerun()
