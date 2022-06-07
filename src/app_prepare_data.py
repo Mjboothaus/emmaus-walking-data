@@ -28,6 +28,10 @@ def plot_walk_points(walk_points, map_handle, linecolour, linewidth):
     folium.PolyLine(walk_points, color=linecolour, weight=linewidth).add_to(map_handle)
 
 
+def create_walk_map_handle(query_df, map_handle):
+    plot_walk_points(query_df.values, map_handle, "blue", 3)
+
+
 def create_walk_map(query_df):
     start_coord = (0, 0)
     map_handle = folium.Map(
@@ -55,19 +59,24 @@ def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
     return max(Path(data_dir).glob(file_pattern), key=lambda f: f.stat().st_ctime)
 
 
-# Start with export.zip
+def load_data():
+    DATA_URL = Path("data/workouts_summary.csv")
+    data_df = pd.read_csv(DATA_URL, parse_dates=["start_datetime"])
+    walk_groups_df = pd.read_csv("data/walk_groups.csv")
+    walk_group = walk_groups_df["walk_group"].to_list()
+    workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
+    return data_df, walk_groups_df, walk_group, workouts_labelled_df
 
-menu_choice = st.sidebar.radio(
-    "Main menu:",
-    [
-        "Convert HealthKit export to SQLite",
-        "Calculate workout summary",
-        "Label/group walks",
-    ],
-)
-st.sidebar.markdown("##")
 
-if menu_choice == "Convert HealthKit export to SQLite":
+def query_workout_points(workout_id):
+    return (
+        'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
+        + workout_id
+        + '"'
+    )
+
+
+def convert_healthkit_to_sqlite():
     st.subheader("Convert HealthKit data (export.zip) to SQLite database")
 
     data_dir = Path(__file__).parent.parent / "data"
@@ -84,7 +93,8 @@ if menu_choice == "Convert HealthKit export to SQLite":
             db_file, _ = convert_healthkit_export_to_sqlite(Path(path_export_zip))
         st.write(db_file)
 
-elif menu_choice == "Calculate workout summary":
+
+def calculate_workout_summary():
     st.subheader("Calculate workout summary")
     data_dir = Path(__file__).parent.parent / "data"
     db_file = get_latest_sqlite_file(data_dir)
@@ -102,7 +112,9 @@ elif menu_choice == "Calculate workout summary":
                 db_file, include_location=include_location
             )
         st.write(summary_file)
-else:
+
+
+def label_group_walks():
     db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
 
     DATA_URL = Path("data/workouts_summary.csv")
@@ -136,8 +148,8 @@ else:
         with open("data/workouts_labelled.csv", "a") as workouts_labelled_csv:
             workouts_labelled_csv.write("workout_id,walk_group")
 
-    if "start_location" in data_df.keys() and "finish_location" in data_df.keys():
-        display_columns = [
+    display_columns = (
+        [
             "index",
             "start_datetime",
             "workout_id",
@@ -146,14 +158,15 @@ else:
             "elapsed_time_hours",
             "totaldistance_km",
         ]
-    else:
-        display_columns = [
+        if "start_location" in data_df.keys() and "finish_location" in data_df.keys()
+        else [
             "index",
             "start_datetime",
             "workout_id",
             "elapsed_time_hours",
             "totaldistance_km",
         ]
+    )
 
     # Sidebar
 
@@ -195,15 +208,16 @@ else:
     data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
     data_filtered_df.reset_index(drop=True, inplace=True)
 
-    if data_unlabelled:
-        next_row_index = 0
-    else:
-        next_row_index = (
+    next_row_index = (
+        0
+        if data_unlabelled
+        else (
             data_filtered_df["workout_id"]
             .loc[data_filtered_df["workout_id"] == last_labelled_workout_id]
             .index
             + 1
         )
+    )
 
     if next_row_index >= len(data_filtered_df):
         st.info("Finished labelling - stopping")
@@ -226,16 +240,13 @@ else:
 
         st.write("### Next workout to label")
 
-        query = 'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
-        query += next_workout_id + '"'
-
         st.write(
             data_filtered_df[display_columns][
                 data_filtered_df["workout_id"] == next_workout_id
             ].T
         )
 
-        query_df = pd.read_sql_query(query, db.conn)
+        query_df = pd.read_sql_query(query_workout_points(next_workout_id), db.conn)
         create_walk_map(query_df)
 
         walk_group_selected = st.selectbox("Walk group label?", walk_group)
@@ -254,3 +265,63 @@ else:
             save_workout_label(next_workout_id, walk_group_selected)
             st.info("File saved")
             st.experimental_rerun()
+
+
+def map_walks():
+    # Load data
+    data_df, walk_groups_df, walk_group, workouts_labelled_df = load_data()
+    db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
+
+    # sidebar
+    walk_group_selected = st.sidebar.selectbox("Walk to map?", walk_group)
+
+    # Data transformation
+    data_labelled_df = data_df.merge(workouts_labelled_df, on="workout_id")
+
+    # main page
+    st.header("Map walks")
+
+    st.write(
+        walk_groups_df["walk_group_name"][
+            walk_groups_df["walk_group"] == walk_group_selected
+        ].iloc[0]
+    )
+
+    start_coord = (0, 0)
+    map_handle = folium.Map(
+        start_coord, zoom_start=13, detect_retina=True, control_scale=True
+    )
+
+    workouts_to_map = data_labelled_df[
+        data_labelled_df["walk_group"] == walk_group_selected
+    ]["workout_id"].to_list()
+
+    for workout_id in workouts_to_map:
+        query_df = pd.read_sql_query(query_workout_points(workout_id), db.conn)
+        create_walk_map_handle(query_df, map_handle)
+
+    map_handle.fit_bounds(map_handle.get_bounds())
+    folium_static(map_handle, width=750, height=550)
+
+
+# Main menu
+
+menu_choice = st.sidebar.radio(
+    "Main menu:",
+    [
+        "Convert HealthKit export to SQLite",
+        "Calculate workout summary",
+        "Label/group walks",
+        "Map walks",
+    ],
+)
+st.sidebar.markdown("##")
+
+if menu_choice == "Calculate workout summary":
+    calculate_workout_summary()
+elif menu_choice == "Convert HealthKit export to SQLite":
+    convert_healthkit_to_sqlite()
+elif menu_choice == "Label/group walks":
+    label_group_walks()
+else:
+    map_walks()
