@@ -208,30 +208,33 @@ def label_group_walks():
     data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
     data_filtered_df.reset_index(drop=True, inplace=True)
 
-    next_row_index = (
-        0
-        if data_unlabelled
-        else (
-            data_filtered_df["workout_id"]
-            .loc[data_filtered_df["workout_id"] == last_labelled_workout_id]
-            .index
-            + 1
-        )
-    )
+    if data_filtered_df["workout_id"].isin([last_labelled_workout_id]).any():
 
-    if next_row_index >= len(data_filtered_df):
-        st.info("Finished labelling - stopping")
-    else:
-        # following is a hack as for some reason Pandas sometimes returns a dataframe with a single row, and other times a series.
-        try:
-            next_row = data_filtered_df[display_columns].iloc[[next_row_index], :]
-        except Exception:
-            next_row = data_filtered_df[display_columns].iloc[next_row_index]
+        next_row_index = (
+            0
+            if data_unlabelled
+            else (
+                data_filtered_df["workout_id"]
+                .loc[data_filtered_df["workout_id"] == last_labelled_workout_id]
+                .index
+                + 1
+            )
+        )
+
+        if next_row_index[0] >= len(data_filtered_df):
+            st.info("Finished labelling - stopping")
+        else:
+            # following is a hack as for some reason Pandas sometimes returns a dataframe with a single row, and other times a series.
+            try:
+                next_row = data_filtered_df[display_columns].iloc[[next_row_index], :]
+            except Exception:
+                next_row = data_filtered_df[display_columns].iloc[next_row_index]
+
         next_workout_id = next_row["workout_id"].iloc[0]
 
         # Main page - Label/group walks
 
-        st.header("Workout/group labeller")
+        st.header("Label/group walks")
 
         if display_all is True:
             st.markdown(f"### All workouts - {len(data_filtered_df)}")
@@ -265,6 +268,10 @@ def label_group_walks():
             save_workout_label(next_workout_id, walk_group_selected)
             st.info("File saved")
             st.experimental_rerun()
+    else:
+        st.error(
+            "Cannot find last labelled workout in walks - this may have been excluded by an increase in the distance threshold."
+        )
 
 
 def map_walks():
