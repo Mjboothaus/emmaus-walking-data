@@ -6,21 +6,24 @@
 # The archive can be converted to a SQLite database using the following command:
 # `healthkit-to-sqlite export.zip healthkit_db.sqlite`
 
-import pandas as pd
 import datetime as dt
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
+import pandas as pd
 import pendulum
+import reverse_geocode as rg
+import streamlit as st
 from sqlite_utils import Database
-import reverse_geocoder as rg
 
 
-def get_location(latitude, longitude):
-    location = rg.search((latitude, longitude))
-    return [location[0]["name"], location[0]["admin1"], location[0]["cc"]]
+def get_location_rg(latitude, longitude):
+    return rg.get(
+        (latitude, longitude),
+    )
 
 
-def calculate_elapsed_time_minutes(finish_datetime, start_datetime):
+def calculate_elapsed_time_hours(finish_datetime, start_datetime):
     dt = pendulum.parse(finish_datetime) - pendulum.parse(start_datetime)
     return float(dt.in_seconds() / 60 / 60)
 
@@ -72,14 +75,17 @@ def create_df_from_sql_query_in_file(
         if echo_query is True:
             print(sql_text)
         df = pd.read_sql_query(sql_text, conn, parse_dates=parse_dates)
+        st.info(f"Running: {sql_text[:60]}")
     return df
 
 
 def create_walk_workout_summary(
-    db_file, output_file=Path(__file__).parent.parent / "data/workouts_summary.csv", include_location=False
+    db_file,
+    output_file=Path(__file__).parent.parent / "data/workouts_summary.csv",
+    include_location=False,
 ):
     if db_file is None or Path(db_file).exists() is False:
-        print("SQLite database doesn't exist or not found")
+        st.error("SQLite database doesn't exist or not found")
         return None
     db = Database(db_file)
 
@@ -107,7 +113,7 @@ def create_walk_workout_summary(
         finish_point_df, how="inner", on="workout_id"
     )
     workouts_summary_df["elapsed_time_hours"] = workouts_summary_df.apply(
-        lambda row: calculate_elapsed_time_minutes(
+        lambda row: calculate_elapsed_time_hours(
             row["finish_datetime"], row["start_datetime"]
         ),
         axis=1,
@@ -117,14 +123,16 @@ def create_walk_workout_summary(
     )
 
     if include_location is True:
+        st.info("Beginning start location lookup")
         workouts_summary_df["start_location"] = workouts_summary_df.apply(
-            lambda row: get_location(
+            lambda row: get_location_rg(
                 float(row["start_latitude"]), float(row["start_longitude"])
             ),
             axis=1,
         )
+        st.info("Beginning start location lookup")
         workouts_summary_df["finish_location"] = workouts_summary_df.apply(
-            lambda row: get_location(
+            lambda row: get_location_rg(
                 float(row["finish_latitude"]), float(row["finish_longitude"])
             ),
             axis=1,
