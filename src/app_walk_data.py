@@ -12,7 +12,7 @@ from sqlite_utils import Database
 from st_aggrid import AgGrid
 from streamlit_folium import folium_static
 
-from healthkit_to_sqlite import (
+from walk_data_aux import (
     convert_healthkit_export_to_sqlite,
     create_walk_workout_summary,
 )
@@ -39,7 +39,7 @@ def create_walk_map(query_df):
     )
     plot_walk_points(query_df.values, map_handle, "blue", 3)
     map_handle.fit_bounds(map_handle.get_bounds())
-    folium_static(map_handle, width=500, height=200)
+    folium_static(map_handle, width=550, height=300)
 
 
 def save_workout_label(workout_id, walk_group):
@@ -69,11 +69,7 @@ def load_data():
 
 
 def query_workout_points(workout_id):
-    return (
-        'SELECT latitude, longitude FROM workout_points WHERE workout_id = "'
-        + workout_id
-        + '"'
-    )
+    return f'SELECT latitude, longitude FROM workout_points WHERE workout_id = "{workout_id}"'
 
 
 def convert_healthkit_to_sqlite():
@@ -201,7 +197,7 @@ def label_group_walks():
 
     st.sidebar.markdown("##")
 
-    display_all = st.sidebar.checkbox("Display workout summary")
+    display_all = st.sidebar.checkbox("Info: Display summary of workouts")
 
     # filter data & do calculations
 
@@ -234,14 +230,16 @@ def label_group_walks():
 
         # Main page - Label/group walks
 
-        st.header("Label/group walks")
+        st.subheader("Label/group walks")
 
         if display_all is True:
-            st.markdown(f"### All workouts - {len(data_filtered_df)}")
+            st.markdown(
+                f"#### Walks selected (total distance > {threshold} km) : Count is {len(data_filtered_df)}"
+            )
             grid = AgGrid(data_filtered_df[display_columns], editable=True)
             grid_df = grid["data"]
 
-        st.write("### Next workout to label")
+        st.write("#### Next workout to label")
 
         st.write(
             data_filtered_df[display_columns][

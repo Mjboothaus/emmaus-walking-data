@@ -60,8 +60,6 @@ entrypoints==0.4
     #   altair
     #   jupyter-client
     #   nbconvert
-et-xmlfile==1.1.0
-    # via openpyxl
 executing==0.8.3
     # via stack-data
 fastjsonschema==2.15.3
@@ -161,11 +159,9 @@ numpy==1.22.3
     #   pandas
     #   pyarrow
     #   pydeck
-    #   reverse-geocoder
+    #   reverse-geocode
     #   scipy
     #   streamlit
-openpyxl==3.0.9
-    # via -r requirements.in
 packaging==21.3
     # via
     #   ipykernel
@@ -244,10 +240,10 @@ requests==2.27.1
     # via
     #   folium
     #   streamlit
-reverse-geocoder==1.5.1
+reverse-geocode==1.4.1
     # via -r requirements.in
 scipy==1.8.0
-    # via reverse-geocoder
+    # via reverse-geocode
 semver==2.13.0
     # via streamlit
 send2trash==1.8.0
@@ -288,8 +284,6 @@ tinycss2==1.1.1
     # via nbconvert
 toml==0.10.2
     # via streamlit
-tomli==2.0.1
-    # via -r requirements.in
 toolz==0.11.2
     # via altair
 tornado==6.1

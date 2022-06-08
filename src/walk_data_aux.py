@@ -1,3 +1,5 @@
+# Walk data auxiliary functions to support the App
+
 #  HealthKit to SQLite
 #   - Export all of my Apple HealthFit data from the Health app to export.zip
 #   - Converted this to a SQLite database using `healthkit-to-sqlite`
@@ -75,7 +77,6 @@ def create_df_from_sql_query_in_file(
         if echo_query is True:
             print(sql_text)
         df = pd.read_sql_query(sql_text, conn, parse_dates=parse_dates)
-        st.info(f"Running: {sql_text[:60]}")
     return df
 
 
@@ -123,14 +124,12 @@ def create_walk_workout_summary(
     )
 
     if include_location is True:
-        st.info("Beginning start location lookup")
         workouts_summary_df["start_location"] = workouts_summary_df.apply(
             lambda row: get_location_rg(
                 float(row["start_latitude"]), float(row["start_longitude"])
             ),
             axis=1,
         )
-        st.info("Beginning start location lookup")
         workouts_summary_df["finish_location"] = workouts_summary_df.apply(
             lambda row: get_location_rg(
                 float(row["finish_latitude"]), float(row["finish_longitude"])

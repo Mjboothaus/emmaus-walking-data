@@ -1,13 +1,11 @@
 folium
 healthkit-to-sqlite
 numpy
-openpyxl
 pandas
 pathlib
 pendulum
-reverse_geocoder
+reverse_geocode
 sqlite_utils
 streamlit
 streamlit-aggrid
 streamlit_folium
-tomli
