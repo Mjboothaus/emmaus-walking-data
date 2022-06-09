@@ -1,13 +1,9 @@
-import os
 import warnings
 from pathlib import Path
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import folium
 import pandas as pd
 import streamlit as st
-from numpy import empty
 from sqlite_utils import Database
 from st_aggrid import AgGrid
 from streamlit_folium import folium_static
@@ -17,11 +13,18 @@ from walk_data_aux import (
     create_walk_workout_summary,
 )
 
-# Labelling / grouping approach relies on the sorting by workout start time
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
+# Labelling / grouping approach assumes the sorting by workout start time
 
 MAX_MIN_DISTANCE_THRESHOLD = 50
+DATA_WALK_GROUPS_CSV = "data/walk_groups.csv"
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="Emmaus-Walking-Data",
+    layout="wide",
+    menu_items={"About": "Made with care at DataBooth - www.databooth.com.au"},
+)
 
 
 def plot_walk_points(walk_points, map_handle, linecolour, linewidth):
@@ -49,7 +52,7 @@ def save_workout_label(workout_id, walk_group):
 
 
 def save_new_walk_group(walk_group, walk_group_name):
-    with open("data/walk_groups.csv", "a") as f:
+    with open(DATA_WALK_GROUPS_CSV, "a") as f:
         csv_str = "\n" + '"' + str(walk_group).upper() + '","' + walk_group_name + '"'
         f.write(csv_str)
 
@@ -71,9 +74,9 @@ def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
 
 
 def load_data():
-    DATA_URL = Path("data/workouts_summary.csv")
-    data_df = pd.read_csv(DATA_URL, parse_dates=["start_datetime"])
-    walk_groups_df = pd.read_csv("data/walk_groups.csv")
+    DATA_CSV = Path("data/workouts_summary.csv")
+    data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
+    walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
     walk_group = walk_groups_df["walk_group"].to_list()
     workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
     return data_df, walk_groups_df, walk_group, workouts_labelled_df
@@ -104,12 +107,12 @@ def convert_healthkit_to_sqlite():
 def calculate_workout_summary():
     st.subheader("Calculate workout summary")
     data_dir = Path(__file__).parent.parent / "data"
-    db_file, n_db = get_latest_sqlite_file(data_dir)
+    db_file, db_available = get_latest_sqlite_file(data_dir)
     st.text_input(
         label="Most recent SQLite database (in data directory)", value=db_file
     )
-
-    if calc_button := st.button(label="Calculate summary"):
+    disable_calc_button = db_available == 0
+    if st.button(label="Calculate summary", disabled=disable_calc_button):
         with st.spinner(text="In progress..."):
             summary_file = create_walk_workout_summary(db_file)
         st.write(summary_file)
@@ -123,25 +126,24 @@ def label_group_walks():
         st.info(
             "No SQLite database available: please first convert HealthKit export (menu option 1)"
         )
-        return
+        return None
+
+    # Load data
 
     db = Database(db_path)
-
-    st.sidebar.text_input(label="SQLite database", value=db_path.split("/")[-1])
-
-    DATA_URL = Path("data/workouts_summary.csv")
-    data_df = pd.read_csv(DATA_URL, parse_dates=["start_datetime"])
+    DATA_CSV = Path("data/workouts_summary.csv")
+    data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
     data_df.sort_values(by="start_datetime", inplace=True)
     data_df.reset_index(inplace=True)
     data_df["index"] = data_df.index
 
-    if Path("data/walk_groups.csv").exists() is True:
-        walk_groups_df = pd.read_csv("data/walk_groups.csv")
+    if Path(DATA_WALK_GROUPS_CSV).exists() is True:
+        walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
         walk_group = walk_groups_df["walk_group"].to_list()
     else:
         # Create default walk_groups.csv
         walk_group = []
-        with open("data/walk_groups.csv", "a") as walk_groups_csv:
+        with open(DATA_WALK_GROUPS_CSV, "a") as walk_groups_csv:
             walk_groups_csv.write('"walk_group","walk_group_name"')
 
     if Path("data/workouts_labelled.csv").exists() is True:
@@ -171,7 +173,7 @@ def label_group_walks():
     ]
 
     # Sidebar
-
+    st.sidebar.text_input(label="SQLite database", value=db_path.split("/")[-1])
     st.sidebar.markdown("## Add new walk group")
 
     placeholder1 = st.sidebar.empty()
@@ -189,7 +191,7 @@ def label_group_walks():
             "New walk group name e.g. Great North Walk", value="", key=1
         )
         # update walk_group info if new group created
-        walk_groups_df = pd.read_csv("data/walk_groups.csv")
+        walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
         walk_group = walk_groups_df["walk_group"].to_list()
 
     st.sidebar.markdown("##")

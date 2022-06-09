@@ -1,6 +1,5 @@
 # Walk data auxiliary functions to support the App
 
-#  HealthKit to SQLite
 #   - Export all of my Apple HealthFit data from the Health app to export.zip
 #   - Converted this to a SQLite database using `healthkit-to-sqlite`
 #   - Run various SQL queries to allow for producing a summary of (walk/hike) workouts
@@ -15,7 +14,6 @@ from pathlib import Path
 import pandas as pd
 import pendulum
 import reverse_geocode as rg
-import streamlit as st
 from sqlite_utils import Database
 
 TIMEZONE = "Australia/Sydney"
@@ -59,9 +57,6 @@ def convert_healthkit_export_to_sqlite(export_zip):
         )
     )
     db_file_with_date = Path(db_file).rename(db_file_with_date)
-
-    # TODO: move this file to the local data directory - .replace() method
-
     db_file_data_dir = Path(__file__).parent.parent / "data" / db_file_with_date.name
     db_file_with_date.replace(db_file_data_dir)
 
@@ -86,7 +81,6 @@ def create_walk_workout_summary(
     db_file, output_file=Path(__file__).parent.parent / "data/workouts_summary.csv"
 ):
     if db_file is None or Path(db_file).exists() is False:
-        st.error("SQLite database doesn't exist or not found")
         return None
     db = Database(db_file)
 
