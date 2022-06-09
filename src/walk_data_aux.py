@@ -18,6 +18,8 @@ import reverse_geocode as rg
 import streamlit as st
 from sqlite_utils import Database
 
+TIMEZONE = "Australia/Sydney"
+
 
 def get_location_rg(latitude, longitude):
     return rg.get(
@@ -81,9 +83,7 @@ def create_df_from_sql_query_in_file(
 
 
 def create_walk_workout_summary(
-    db_file,
-    output_file=Path(__file__).parent.parent / "data/workouts_summary.csv",
-    include_location=False,
+    db_file, output_file=Path(__file__).parent.parent / "data/workouts_summary.csv"
 ):
     if db_file is None or Path(db_file).exists() is False:
         st.error("SQLite database doesn't exist or not found")
@@ -120,22 +120,21 @@ def create_walk_workout_summary(
         axis=1,
     )
     workouts_summary_df["start_datetime"] = workouts_summary_df["start_datetime"].apply(
-        lambda dt: pendulum.parse(dt, tz="Australia/Sydney").to_datetime_string()
+        lambda dt: pendulum.parse(dt, tz=TIMEZONE).to_datetime_string()
     )
 
-    if include_location is True:
-        workouts_summary_df["start_location"] = workouts_summary_df.apply(
-            lambda row: get_location_rg(
-                float(row["start_latitude"]), float(row["start_longitude"])
-            ),
-            axis=1,
-        )
-        workouts_summary_df["finish_location"] = workouts_summary_df.apply(
-            lambda row: get_location_rg(
-                float(row["finish_latitude"]), float(row["finish_longitude"])
-            ),
-            axis=1,
-        )
+    workouts_summary_df["start_location"] = workouts_summary_df.apply(
+        lambda row: get_location_rg(
+            float(row["start_latitude"]), float(row["start_longitude"])
+        ),
+        axis=1,
+    )
+    workouts_summary_df["finish_location"] = workouts_summary_df.apply(
+        lambda row: get_location_rg(
+            float(row["finish_latitude"]), float(row["finish_longitude"])
+        ),
+        axis=1,
+    )
     workouts_summary_df = workouts_summary_df.merge(
         workouts_df, how="inner", on="workout_id"
     )
