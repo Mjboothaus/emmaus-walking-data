@@ -55,8 +55,19 @@ def save_new_walk_group(walk_group, walk_group_name):
 
 
 def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
-    # print(Path(data_dir).glob(file_pattern))
-    return max(Path(data_dir).glob(file_pattern), key=lambda f: f.stat().st_ctime)
+    return (
+        (
+            max(
+                Path(data_dir).glob(file_pattern),
+                key=lambda f: f.stat().st_ctime,
+            )
+            .absolute()
+            .as_posix(),
+            len(list(Path(data_dir).glob(file_pattern))),
+        )
+        if list(Path(data_dir).glob(file_pattern))
+        else (f"No files matching {file_pattern}", 0)
+    )
 
 
 def load_data():
@@ -78,7 +89,7 @@ def convert_healthkit_to_sqlite():
     data_dir = Path(__file__).parent.parent / "data"
     st.text_input(
         label="Most recent SQLite database (in data directory)",
-        value=get_latest_sqlite_file(data_dir),
+        value=get_latest_sqlite_file(data_dir)[0],
     )
 
     path_export_zip = st.text_input(label="Enter path to export.zip")
@@ -93,25 +104,30 @@ def convert_healthkit_to_sqlite():
 def calculate_workout_summary():
     st.subheader("Calculate workout summary")
     data_dir = Path(__file__).parent.parent / "data"
-    db_file = get_latest_sqlite_file(data_dir)
+    db_file, n_db = get_latest_sqlite_file(data_dir)
     st.text_input(
         label="Most recent SQLite database (in data directory)", value=db_file
     )
 
-    include_location = st.checkbox(
-        "Include location lookup for start/finish points? [this takes much longer to run]"
-    )
-
     if calc_button := st.button(label="Calculate summary"):
         with st.spinner(text="In progress..."):
-            summary_file = create_walk_workout_summary(
-                db_file, include_location=include_location
-            )
+            summary_file = create_walk_workout_summary(db_file)
         st.write(summary_file)
 
 
 def label_group_walks():
-    db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
+    db_path, db_available = get_latest_sqlite_file(
+        Path(__file__).parent.parent / "data"
+    )
+    if db_available == 0:
+        st.info(
+            "No SQLite database available: please first convert HealthKit export (menu option 1)"
+        )
+        return
+
+    db = Database(db_path)
+
+    st.sidebar.text_input(label="SQLite database", value=db_path.split("/")[-1])
 
     DATA_URL = Path("data/workouts_summary.csv")
     data_df = pd.read_csv(DATA_URL, parse_dates=["start_datetime"])
@@ -144,25 +160,15 @@ def label_group_walks():
         with open("data/workouts_labelled.csv", "a") as workouts_labelled_csv:
             workouts_labelled_csv.write("workout_id,walk_group")
 
-    display_columns = (
-        [
-            "index",
-            "start_datetime",
-            "workout_id",
-            "start_location",
-            "finish_location",
-            "elapsed_time_hours",
-            "totaldistance_km",
-        ]
-        if "start_location" in data_df.keys() and "finish_location" in data_df.keys()
-        else [
-            "index",
-            "start_datetime",
-            "workout_id",
-            "elapsed_time_hours",
-            "totaldistance_km",
-        ]
-    )
+    display_columns = [
+        "index",
+        "start_datetime",
+        "workout_id",
+        "start_location",
+        "finish_location",
+        "elapsed_time_hours",
+        "totaldistance_km",
+    ]
 
     # Sidebar
 
@@ -275,7 +281,7 @@ def label_group_walks():
 def map_walks():
     # Load data
     data_df, walk_groups_df, walk_group, workouts_labelled_df = load_data()
-    db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data"))
+    db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data")[0])
 
     # sidebar
     walk_group_selected = st.sidebar.selectbox("Walk to map?", walk_group)
