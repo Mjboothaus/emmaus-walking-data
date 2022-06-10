@@ -1,6 +1,6 @@
 # `emmaus-walking-data`
 
-The code in this repo is designed to provide a multi-function web app (Streamlit framework) which converts the data in an [Apple HealthKit](https://developer.apple.com/health-fitness/) archive (export.zip) into a SQLite database and then pre-calculates various quantities to assist with the labelling (grouping) of walk/hike workouts and preparing them for mapping the groups of walks/hikes.
+The code in this repo is designed to provide a multi-function web app (using the [Streamlit.io](https://streamlit.io) framework) which converts the data in an [Apple HealthKit](https://developer.apple.com/health-fitness/) archive (`export.zip`) into a SQLite database and then pre-calculates various quantities to assist with the labelling (grouping) of walk/hike workouts and preparing them for mapping the groups of walks/hikes.
 
 For the specific purposes here we have focussed on workout types of "Walking" or "Hiking", although you could change this in the first query (`select_star_walking_workouts.sql`) below if you are interested in other [workout](
 https://developer.apple.com/documentation/healthkit/hkworkout) types.
@@ -8,11 +8,11 @@ i.e. the `workoutactivitytype` is `HKWorkoutActivityTypeWalking` or `HKWorkoutAc
 
 The determination of the start / finish latitude and longitude points for each workout is performed by the other two queries.
 
-## App Functionality
+## App functionality
 
 The app `app_walk_data.py` has four pieces of functionality which can be selected in
 the main menu section of the app sidebar. These are:
-1. Convert the HealthKit export to a SQLite database
+1. Convert a HealthKit export to a SQLite database
 2. Calculate workouts summary data for each walk/hike workout in the HealthKit data
 3. Facilitate the labelling/group of walks, and
 4. Mapping of each of the groups of labelled walks.
@@ -68,6 +68,10 @@ Input:
 Output:
 - `data/walk_groups.csv` user defined walk groups - pair of walk acronym and walk description.
 - `data/workouts_labelled.csv` user assigned label (walk group) for each (walk/hike) workout.
+
+#### Example label/group data
+
+
 
 ### Mapping the labelled walks
 
