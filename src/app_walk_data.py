@@ -75,11 +75,14 @@ def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
 
 def load_data():
     DATA_CSV = Path("data/workouts_summary.csv")
-    data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
-    walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
-    walk_group = walk_groups_df["walk_group"].to_list()
-    workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
-    return data_df, walk_groups_df, walk_group, workouts_labelled_df
+    try:
+        data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
+        walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
+        workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
+        return data_df, walk_groups_df, workouts_labelled_df
+    except IOError as e:
+        st.error(e)
+        return None, None, None, None
 
 
 def query_workout_points(workout_id):
@@ -132,13 +135,17 @@ def label_group_walks():
 
     db = Database(db_path)
     DATA_CSV = Path("data/workouts_summary.csv")
-    if DATA_CSV.exists() == False:
-        st.error(DATA_CSV.as_posix() + " does not exist - first run 'Calculate workouts summary'")
-        return None
-    data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
-    data_df.sort_values(by="start_datetime", inplace=True)
-    data_df.reset_index(inplace=True)
-    data_df["index"] = data_df.index
+    #if DATA_CSV.exists() == False:
+    #    st.error(DATA_CSV.as_posix() + " does not exist - first run 'Calculate workouts summary'")
+    #    return None
+    try:
+        data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
+        data_df.sort_values(by="start_datetime", inplace=True)
+        data_df.reset_index(inplace=True)
+        data_df["index"] = data_df.index
+    except IOError as e:
+        st.error(e)
+        return
 
     if Path(DATA_WALK_GROUPS_CSV).exists() is True:
         walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
@@ -278,15 +285,25 @@ def label_group_walks():
             st.info("File saved")
             st.experimental_rerun()
     else:
-        st.error(
-            "Cannot find last labelled workout in walks - this may have been excluded by an increase in the distance threshold."
+        if data_unlabelled:
+            return
+        else:
+            st.error(
+                "Cannot find last labelled workout in walks - this may have been excluded by an increase in the distance threshold."
         )
 
 
 def map_walks():
     # Load data
-    data_df, walk_groups_df, walk_group, workouts_labelled_df = load_data()
+    data_df, walk_groups_df, workouts_labelled_df = load_data()
+    if data_df is None or walk_groups_df is None or workouts_labelled_df is None:
+        return None
+    if workouts_labelled_df.empty == True:
+        st.info("No workouts to map - you need to label some first.")
+        return None
     db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data")[0])
+
+    walk_group = walk_groups_df["walk_group"].to_list()
 
     # sidebar
     walk_group_selected = st.sidebar.selectbox("Walk to map?", walk_group)
@@ -296,6 +313,9 @@ def map_walks():
 
     # main page
     st.header("Map walks")
+
+    st.write(walk_groups_df["walk_group_name"][
+            walk_groups_df["walk_group"] == walk_group_selected])
 
     st.write(
         walk_groups_df["walk_group_name"][

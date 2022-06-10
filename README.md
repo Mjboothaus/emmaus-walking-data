@@ -88,7 +88,7 @@ Input:
 #### Timezone
 
 The author's use case was for where most walks have been done in, and thus converted to, the Australian Eastern time zone. Adjust by updating the `TIMEZONE` variable.
-#### Running the Apps
+### Running the Apps
 
 The apps are developed using [Streamlit.io](https://streamlit.io) under Python 3.9. The full dependencies are specified in `requirements.txt`.
 
