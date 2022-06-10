@@ -2,12 +2,6 @@
 
 The code in this repo is designed to provide a multi-function web app (using the [Streamlit.io](https://streamlit.io) framework) which converts the data in an [Apple HealthKit](https://developer.apple.com/health-fitness/) archive (`export.zip`) into a SQLite database and then pre-calculates various quantities to assist with the labelling (grouping) of walk/hike workouts and preparing them for mapping the groups of walks/hikes.
 
-For the specific purposes here we have focussed on workout types of "Walking" or "Hiking", although you could change this in the first query (`select_star_walking_workouts.sql`) below if you are interested in other [workout](
-https://developer.apple.com/documentation/healthkit/hkworkout) types.
-i.e. the `workoutactivitytype` is `HKWorkoutActivityTypeWalking` or `HKWorkoutActivityTypeHiking`.
-
-The determination of the start / finish latitude and longitude points for each workout is performed by the other two queries.
-
 ## App functionality
 
 The app `app_walk_data.py` has four pieces of functionality which can be selected in
@@ -48,6 +42,12 @@ The SQL queries executed as part of calculating the workouts summary are located
 1. `select_star_walking_workouts.sql` - extract all of the walking and hiking workouts
 2. `select_start_point_workout.sql` - for each workout determine the starting latitude and longitude
 3. `select_finish_point_workout.sql` - for each workout determine the finishing latitude and longitude.
+
+For the specific purposes here we have focussed on workout types of "Walking" or "Hiking", although you could change this in the first query (`select_star_walking_workouts.sql`) below if you are interested in other [workout](
+https://developer.apple.com/documentation/healthkit/hkworkout) types.
+i.e. the `workoutactivitytype` is `HKWorkoutActivityTypeWalking` or `HKWorkoutActivityTypeHiking`.
+
+The determination of the start / finish latitude and longitude points for each workout is performed by the other two queries.
 
 ### Label/group walks
 
