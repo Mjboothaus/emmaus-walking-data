@@ -132,6 +132,9 @@ def label_group_walks():
 
     db = Database(db_path)
     DATA_CSV = Path("data/workouts_summary.csv")
+    if DATA_CSV.exists() == False:
+        st.error(DATA_CSV.as_posix() + " does not exist - first run 'Calculate workouts summary'")
+        return None
     data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
     data_df.sort_values(by="start_datetime", inplace=True)
     data_df.reset_index(inplace=True)
@@ -323,17 +326,17 @@ menu_choice = st.sidebar.radio(
     "Main menu:",
     [
         "Convert HealthKit export to SQLite",
-        "Calculate workout summary",
+        "Calculate workouts summary",
         "Label/group walks",
         "Map walks",
     ],
 )
 st.sidebar.markdown("##")
 
-if menu_choice == "Calculate workout summary":
-    calculate_workout_summary()
-elif menu_choice == "Convert HealthKit export to SQLite":
+if menu_choice == "Convert HealthKit export to SQLite":
     convert_healthkit_to_sqlite()
+elif menu_choice == "Calculate workouts summary":
+    calculate_workout_summary()
 elif menu_choice == "Label/group walks":
     label_group_walks()
 else:
