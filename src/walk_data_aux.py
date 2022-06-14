@@ -25,6 +25,11 @@ def get_location_rg(latitude, longitude):
     )
 
 
+def convert_datetime_from_gmt_to_timezone(dt):
+    timezone = pendulum.timezone(TIMEZONE)
+    return timezone.convert(pendulum.parse(dt)).to_datetime_string()
+
+
 def calculate_elapsed_time_hours(finish_datetime, start_datetime):
     dt = pendulum.parse(finish_datetime) - pendulum.parse(start_datetime)
     return float(dt.in_seconds() / 60 / 60)
@@ -114,7 +119,7 @@ def create_walk_workout_summary(
         axis=1,
     )
     workouts_summary_df["start_datetime"] = workouts_summary_df["start_datetime"].apply(
-        lambda dt: pendulum.parse(dt, tz=TIMEZONE).to_datetime_string()
+        lambda dt: convert_datetime_from_gmt_to_timezone(dt)
     )
 
     workouts_summary_df["start_location"] = workouts_summary_df.apply(
