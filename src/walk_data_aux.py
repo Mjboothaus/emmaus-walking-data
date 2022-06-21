@@ -116,6 +116,11 @@ def create_walk_workout_summary(
     workouts_df["endDate"] = workouts_df["endDate"].apply(
         lambda dt: pendulum.instance(dt).to_datetime_string()
     )
+    # Assuming that the start date/time is unique for the basis of the UUID (which seems reasonable)
+    workouts_df["uuid"] = workouts_df["startDate"].apply(
+        lambda dt: uuid_from_datetime(dt)
+    )
+    # Note workout id's are NOT unique between exports from the Health app (just used for linking tables)
     workouts_summary_df = start_point_df.merge(
         finish_point_df, how="inner", on="workout_id"
     )
