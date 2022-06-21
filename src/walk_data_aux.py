@@ -10,6 +10,7 @@
 import datetime as dt
 import subprocess
 from pathlib import Path
+from uuid import UUID, uuid5
 
 import pandas as pd
 import pendulum
@@ -17,6 +18,12 @@ import reverse_geocode as rg
 from sqlite_utils import Database
 
 TIMEZONE = "Australia/Sydney"
+
+FIXED_NAMESPACE = UUID("d5c0f985-3af0-4cfd-8012-560516582f0f")
+
+
+def uuid_from_datetime(dt):
+    return uuid5(FIXED_NAMESPACE, dt)
 
 
 def get_location_rg(latitude, longitude):
