@@ -88,16 +88,21 @@ Input:
 #### Timezone
 
 The author's use case was for where most walks have been done in, and thus converted to, the Australian Eastern time zone. Adjust by updating the `TIMEZONE` variable.
+
 ### Running the Apps
 
 The apps are developed using [Streamlit.io](https://streamlit.io) under Python 3.9. The full dependencies are specified in `requirements.txt`.
 
 To get the app to run create a `venv` and install the `requirements.txt`. e.g.
-
 ```
 python3 -m venv .venv 
 source .venv/bin/activate
 pip install -r requirements.txt 
 ```
+Run the app from the activated `venv` using:
 
-Run the app from the activated `venv` using: `streamlit run src/app_walk_data.py`
+`streamlit run src/app_walk_data.py`
+
+### Notebooks
+
+There is one Jupyter notebook in `notebooks/healthkit_to_sqlite.ipynb` which was used during the development of this project.
