@@ -56,16 +56,16 @@ def convert_healthkit_export_to_sqlite(export_zip):
         ".sqlite", "_" + zip_file_date.to_date_string().replace("-", "_") + ".sqlite"
     )
 
-    export_zip.rename(
-        zip_file.replace(
-            ".zip", "_" + zip_file_date.to_date_string().replace("-", "_") + ".zip"
-        )
+    mv_zip_file = zip_file.replace(
+        ".zip", "_" + zip_file_date.to_date_string().replace("-", "_") + ".zip"
     )
+    export_zip.rename(mv_zip_file)
+
     db_file_with_date = Path(db_file).rename(db_file_with_date)
     db_file_data_dir = Path(__file__).parent.parent / "data" / db_file_with_date.name
     db_file_with_date.replace(db_file_data_dir)
 
-    return db_file_with_date, sp_output
+    return db_file_data_dir, mv_zip_file
 
 
 def create_df_from_sql_query_in_file(
