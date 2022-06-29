@@ -105,7 +105,11 @@ def load_data():
         workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
         return data_df, walk_groups_df, workouts_labelled_df
     except IOError as e:
-        st.error(e)
+        st.info(
+            "Cannot find: "
+            + DATA_CSV.as_posix()
+            + " - first use Menu item #2 to calculate."
+        )
         return None, None, None
 
 
@@ -180,7 +184,11 @@ def label_group_walks():
         data_df.reset_index(inplace=True)
         data_df["index"] = data_df.index
     except IOError as e:
-        st.error(e)
+        st.info(
+            "Cannot find: "
+            + DATA_CSV.as_posix()
+            + " - first use Menu item #2 to calculate."
+        )
         return
 
     if Path(DATA_WALK_GROUPS_CSV).exists():
@@ -375,7 +383,51 @@ def map_walks():
     folium_static(map_handle, width=750, height=550)
 
 
-# Main menu
+def review_walk_labels():
+
+    display_columns = [
+        "walk_group",
+        "index",
+        "start_datetime",
+        "uuid",
+        "start_location",
+        "finish_location",
+        "elapsed_time_hours",
+        "totaldistance_km",
+    ]
+    
+    # Load data
+    data_df, walk_groups_df, workouts_labelled_df = load_data()
+    if data_df is None or walk_groups_df is None or workouts_labelled_df is None:
+        return None
+    if workouts_labelled_df.empty:
+        st.info("No workouts to map - you need to label some first.")
+        return None
+
+    data_df.sort_values(by="start_datetime", inplace=True)
+    data_df.reset_index(inplace=True)
+    data_df["index"] = data_df.index
+
+    db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data")[0])
+
+    
+
+    # Data transformation
+    data_labelled_df = data_df.merge(workouts_labelled_df, on="uuid")
+
+    workout_index = st.sidebar.slider("Workout #", 0, len(data_labelled_df) - 1)
+
+    workout_info = data_labelled_df.iloc[workout_index]
+
+    st.write(workout_info[display_columns])
+
+    query_df = pd.read_sql_query(
+        query_workout_points(data_labelled_df.iloc[workout_index]["uuid"], data_labelled_df), db.conn
+    )
+    create_walk_map(query_df)
+
+
+# Sidebar: Main menu
 
 menu_choice = st.sidebar.radio(
     "Main menu:",
@@ -383,6 +435,7 @@ menu_choice = st.sidebar.radio(
         "Convert HealthKit export to SQLite",
         "Calculate workouts summary",
         "Label/group walks",
+        "Review walk labels",
         "Map walks",
     ],
 )
@@ -394,5 +447,7 @@ elif menu_choice == "Calculate workouts summary":
     calculate_workout_summary()
 elif menu_choice == "Label/group walks":
     label_group_walks()
+elif menu_choice == "Review walk labels":
+    review_walk_labels()
 else:
     map_walks()
