@@ -219,7 +219,7 @@ def label_group_walks():
     input2 = placeholder2.text_input("New walk group name e.g. Great North Walk")
 
     save_group = st.sidebar.button("Save new walk group", key=1)
-
+    # TODO: Should check if group already exists
     if save_group and len(input1) > 2:
         save_new_walk_group(input1, input2)
         input1 = placeholder1.text_input("New walk group e.g. GNW", value="", key=1)
@@ -246,6 +246,10 @@ def label_group_walks():
 
     # filter data & do calculations
 
+    # Seems that it is possible to get duplicated workouts, not sure if this is an
+    # issue with the data captured or the healthkit-to-sqlite tool.
+    data_df.drop_duplicates(subset="uuid", inplace=True)
+
     data_filtered_df = data_df[data_df["totaldistance_km"] >= threshold]
     data_filtered_df.reset_index(drop=True, inplace=True)
 
@@ -259,8 +263,13 @@ def label_group_walks():
         "totaldistance_km",
     ]
 
-    # if data_filtered_df["workout_id"].isin([last_labelled_workout_id]).any():
-    # try:
+    if display_all:
+        st.markdown(
+            f"#### Walks selected (total distance > {threshold} km) : Count is {len(data_filtered_df)}"
+        )
+        grid = AgGrid(data_filtered_df[display_columns], editable=True)
+        grid_df = grid["data"]
+
     next_row_index = (
         data_filtered_df["uuid"]
         .loc[data_filtered_df["uuid"] == last_labelled_workout_id]
@@ -270,9 +279,9 @@ def label_group_walks():
         and data_filtered_df["uuid"].isin([last_labelled_workout_id]).any()
         else 0
     )
-
     if next_row_index >= len(data_filtered_df):
-        st.info("Finished labelling - stopping")
+        st.info("Finished labelling - stopping: no walks left to label")
+        return
     else:
         # Following is a pragmatic hack as for some reason Pandas sometimes returns a dataframe with a single row, and other times as a series.
         try:
@@ -283,13 +292,6 @@ def label_group_walks():
     next_workout_id = next_row["uuid"].iloc[0]
 
     # Main page - Label/group walks
-
-    if display_all:
-        st.markdown(
-            f"#### Walks selected (total distance > {threshold} km) : Count is {len(data_filtered_df)}"
-        )
-        grid = AgGrid(data_filtered_df[display_columns], editable=True)
-        grid_df = grid["data"]
 
     st.subheader("Label/group walks")
 
@@ -322,17 +324,6 @@ def label_group_walks():
         st.experimental_rerun()
 
 
-# elif not data_labelled:
-#   st.error(
-#        "Need to start with first workout_id"
-#    )
-# except:
-#    st.error(
-#        "Cannot find last labelled workout in walks - this may have been excluded by an increase in the distance threshold."
-#    )
-# return
-
-
 def map_walks():
     # Load data
     data_df, walk_groups_df, workouts_labelled_df = load_data()
@@ -345,17 +336,13 @@ def map_walks():
 
     walk_group = walk_groups_df["walk_group"].to_list()
 
-    # sidebar
+    # Sidebar
     walk_group_selected = st.sidebar.selectbox("Walk to map?", walk_group)
-
-    # st.dataframe(workouts_labelled_df)
-    # st.dataframe(data_df)
 
     # Data transformation
     data_labelled_df = data_df.merge(workouts_labelled_df, on="uuid")
 
     # Main page
-
     st.header("Map walks")
 
     st.write(
