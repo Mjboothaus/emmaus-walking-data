@@ -1,7 +1,8 @@
 # See https://just.systems/
 
-app_py := "src/Main.py"
-server_port := "8080"
+#app_py := "src/Main.py" in .env
+#server_port := "8080" in .env
+
 gcp_region := "australia-southeast1" 
 
 # Load variables from .env file

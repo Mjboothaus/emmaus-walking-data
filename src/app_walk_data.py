@@ -13,12 +13,13 @@ from walk_data_aux import (
     create_walk_workout_summary,
 )
 
+from helper_app import *
+from helper_folium import *
+
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Labelling / grouping approach assumes the sorting by workout start time
 
-MAX_MIN_DISTANCE_THRESHOLD = 50
-DATA_WALK_GROUPS_CSV = "data/walk_groups.csv"
 
 st.set_page_config(
     page_title="Emmaus-Walking-Data",
@@ -29,95 +30,8 @@ st.set_page_config(
 )
 
 
-def create_tooltip(start_date, time_hours, distance_km):
-    tooltip = start_date
-    return tooltip
+MAX_MIN_DISTANCE_THRESHOLD = 50
 
-
-def create_marker(latitude, longitude, start_date, time_hours, distance_km, m):
-    folium.Marker(
-        icon=folium.Icon(icon="play-circle"),
-        location=[latitude, longitude],
-        # popup=
-        tooltip=create_tooltip(start_date, time_hours, distance_km),
-    ).add_to(m)
-
-
-def plot_walk_points(
-    walk_points, map_handle, linecolour, linewidth
-):  # , start_date, time_hours, distance_km):
-    folium.PolyLine(walk_points, color=linecolour, weight=linewidth).add_to(map_handle)
-    # if start_date and time_hours and distance_km is not None:
-    #    create_marker(walk_points[0][0], walk_points[0][1], start_date, time_hours, distance_km, map_handle)
-
-
-def create_walk_map_handle(
-    query_df, map_handle
-):  # , start_date, time_hours, distance_km):
-    plot_walk_points(
-        query_df.values, map_handle, "blue", 3
-    )  # , start_date, time_hours, distance_km)
-
-
-def create_walk_map(query_df):
-    start_coord = (0, 0)
-    map_handle = folium.Map(
-        start_coord, zoom_start=13, detect_retina=True, control_scale=True
-    )
-    plot_walk_points(query_df.values, map_handle, "blue", 3)  # , None, None, None)
-    map_handle.fit_bounds(map_handle.get_bounds())
-    folium_static(map_handle, width=550, height=300)
-
-
-def save_workout_label(workout_id, walk_group):
-    with open("data/workouts_labelled.csv", "a") as f:
-        csv_str = "\n" + workout_id + "," + str(walk_group)
-        f.write(csv_str)
-
-
-def save_new_walk_group(walk_group, walk_group_name):
-    with open(DATA_WALK_GROUPS_CSV, "a") as f:
-        csv_str = "\n" + '"' + str(walk_group).upper() + '","' + walk_group_name + '"'
-        f.write(csv_str)
-
-
-def get_latest_sqlite_file(data_dir, file_pattern="healthkit_db_*.sqlite"):
-    return (
-        (
-            max(
-                Path(data_dir).glob(file_pattern),
-                key=lambda f: f.stat().st_ctime,
-            )
-            .absolute()
-            .as_posix(),
-            len(list(Path(data_dir).glob(file_pattern))),
-        )
-        if list(Path(data_dir).glob(file_pattern))
-        else (f"No files matching {file_pattern}", 0)
-    )
-
-
-def load_data():
-    DATA_CSV = Path("data/workouts_summary.csv")
-    try:
-        data_df = pd.read_csv(DATA_CSV, parse_dates=["start_datetime"])
-        walk_groups_df = pd.read_csv(DATA_WALK_GROUPS_CSV)
-        workouts_labelled_df = pd.read_csv("data/workouts_labelled.csv")
-        return data_df, walk_groups_df, workouts_labelled_df
-    except IOError as e:
-        st.info(
-            "Cannot find: "
-            + DATA_CSV.as_posix()
-            + " - first use Menu item #2 to calculate."
-        )
-        return None, None, None
-
-
-def query_workout_points(uuid, data_filtered_df):
-    workout_id = data_filtered_df[data_filtered_df["uuid"] == uuid]["workout_id"].iloc[
-        0
-    ]
-    return f'SELECT latitude, longitude FROM workout_points WHERE workout_id = "{workout_id}"'
 
 
 def convert_healthkit_to_sqlite():
@@ -305,14 +219,16 @@ def label_group_walks():
 
     st.write("#### Next workout to label")
 
-    st.write(
-        data_filtered_df[display_columns][data_filtered_df["uuid"] == next_workout_id].T
-    )
+    workout_info = data_filtered_df[display_columns][
+        data_filtered_df["uuid"] == next_workout_id
+    ]
+
+    st.write(workout_info.T)
 
     query_df = pd.read_sql_query(
         query_workout_points(next_workout_id, data_filtered_df), db.conn
     )
-    create_walk_map(query_df)
+    create_walk_map(query_df, workout_info)
 
     walk_group_selected = st.selectbox("Walk group label?", walk_group)
 
@@ -372,12 +288,9 @@ def map_walks():
         query_df = pd.read_sql_query(
             query_workout_points(uuid, data_labelled_df), db.conn
         )
-        # start_date = data_df[data_df["workout_id"] == workout_id]["startDate"].iloc[0]
-        # time_hours = data_df[data_df["workout_id"] == workout_id]["elapsed_time_hours"].iloc[0]
-        # distance_km = data_df[data_df["workout_id"] == workout_id]["totaldistance_km"].iloc[0]
-        create_walk_map_handle(
-            query_df, map_handle
-        )  # , start_date, time_hours, distance_km)
+        workout_info = data_df[data_df["uuid"] == uuid].iloc[0]
+        create_walk_map_handle(query_df, map_handle, workout_info)
+        # st.info(uuid)
 
     map_handle.fit_bounds(map_handle.get_bounds())
     folium_static(map_handle, width=750, height=550)
@@ -395,7 +308,7 @@ def review_walk_labels():
         "elapsed_time_hours",
         "totaldistance_km",
     ]
-    
+
     # Load data
     data_df, walk_groups_df, workouts_labelled_df = load_data()
     if data_df is None or walk_groups_df is None or workouts_labelled_df is None:
@@ -410,21 +323,22 @@ def review_walk_labels():
 
     db = Database(get_latest_sqlite_file(Path(__file__).parent.parent / "data")[0])
 
-    
-
     # Data transformation
     data_labelled_df = data_df.merge(workouts_labelled_df, on="uuid")
 
-    workout_index = st.sidebar.slider("Workout #", 0, len(data_labelled_df) - 1)
+    workout_index = st.slider("Workout # for review:", 0, len(data_labelled_df) - 1)
 
     workout_info = data_labelled_df.iloc[workout_index]
 
     st.write(workout_info[display_columns])
 
     query_df = pd.read_sql_query(
-        query_workout_points(data_labelled_df.iloc[workout_index]["uuid"], data_labelled_df), db.conn
+        query_workout_points(
+            data_labelled_df.iloc[workout_index]["uuid"], data_labelled_df
+        ),
+        db.conn,
     )
-    create_walk_map(query_df)
+    create_walk_map(query_df, workout_info)
 
 
 # Sidebar: Main menu

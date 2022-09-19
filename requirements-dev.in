@@ -10,3 +10,4 @@ sqlite_utils
 streamlit
 streamlit-aggrid
 streamlit_folium
+watchdog
