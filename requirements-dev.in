@@ -1,8 +1,9 @@
+autopep8
 folium
 healthkit-to-sqlite
+notebook
 numpy
 pandas
-pathlib
 pendulum
 reverse_geocode
 sqlite_utils

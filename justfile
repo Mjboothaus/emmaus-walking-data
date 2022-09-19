@@ -1,5 +1,9 @@
 # See https://just.systems/
 
+app_py := "src/Main.py"
+server_port := "8080"
+gcp_region := "australia-southeast1" 
+
 # Load variables from .env file
 
 set dotenv-load
@@ -8,9 +12,16 @@ set dotenv-load
 
 help:
   @just -l
-  
+
+
+name:
+	#!/usr/bin/env bash
+	echo $PROJECT_NAME
+
+
 docs:
 	open $DOCS_URL
+
 
 port-process port:
 	sudo lsof -i :$SERVER_PORT
