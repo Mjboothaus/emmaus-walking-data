@@ -56,6 +56,8 @@ def convert_healthkit_export_to_sqlite(export_zip):
         Path(db_file).unlink()
     sp_cmd = f"healthkit-to-sqlite {zip_file} {db_file}"
 
+    print(sp_cmd)
+
     sp = subprocess.Popen(sp_cmd, stdout=subprocess.PIPE, shell=True)
     (sp_output, _) = sp.communicate()
 
