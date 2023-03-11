@@ -8,13 +8,10 @@ from sqlite_utils import Database
 from st_aggrid import AgGrid
 from streamlit_folium import folium_static
 
-from walk_data_aux import (
-    convert_healthkit_export_to_sqlite,
-    create_walk_workout_summary,
-)
-
 from helper_app import *
 from helper_folium import *
+from walk_data_aux import (convert_healthkit_export_to_sqlite,
+                           create_walk_workout_summary)
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
