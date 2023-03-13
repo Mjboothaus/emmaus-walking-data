@@ -9,6 +9,8 @@ import streamlit as st
 from streamlit_folium import folium_static
 from gpx_converter import Converter
 
+import helper_folium
+
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -38,7 +40,14 @@ def extract_track_metadata(gpx_file):
         return track
     else:
         return Track()
+    
 
+def plot_track(track):
+    df = track.data[["latitude", "longitude"]]
+    df.columns = ["lat", "lon"]
+    #print(df.head())
+    #return df
+    helper_folium.create_walk_map(df, workout_info=[])
 
 # Start of App
 
@@ -53,6 +62,9 @@ if gpx_file is not None:
         st.write(Path(gpx_file).name)
         track = extract_track_metadata(Path(gpx_file))
         st.write(track.data)
+        st.write(track.data[["latitude", "longitude"]])
+        df = plot_track(track)
+        st.write(df)
     else:
         st.error(f"File {gpx_file} does not exist")
 
