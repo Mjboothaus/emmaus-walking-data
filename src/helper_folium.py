@@ -4,7 +4,10 @@ from streamlit_folium import folium_static
 
 
 def create_tooltip(workout_info):
-    tooltip = workout_info["uuid"]
+    try:
+        tooltip = workout_info["uuid"]
+    except:
+        tooltip = ""
     return tooltip
 
 

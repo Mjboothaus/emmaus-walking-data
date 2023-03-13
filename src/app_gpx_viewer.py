@@ -45,9 +45,9 @@ def extract_track_metadata(gpx_file):
 def plot_track(track):
     df = track.data[["latitude", "longitude"]]
     df.columns = ["lat", "lon"]
-    #print(df.head())
-    #return df
     helper_folium.create_walk_map(df, workout_info=[])
+    return None
+
 
 # Start of App
 
@@ -61,10 +61,9 @@ if gpx_file is not None:
     if Path(gpx_file).exists():
         st.write(Path(gpx_file).name)
         track = extract_track_metadata(Path(gpx_file))
-        st.write(track.data)
-        st.write(track.data[["latitude", "longitude"]])
-        df = plot_track(track)
-        st.write(df)
+        #st.write(track.data)
+        #st.write(track.data[["latitude", "longitude"]])
+        plot_track(track)
     else:
         st.error(f"File {gpx_file} does not exist")
 
