@@ -10,8 +10,10 @@ from streamlit_folium import folium_static
 
 from helper_app import *
 from helper_folium import *
-from walk_data_aux import (convert_healthkit_export_to_sqlite,
-                           create_walk_workout_summary)
+from walk_data_aux import (
+    convert_healthkit_export_to_sqlite,
+    create_walk_workout_summary,
+)
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -28,7 +30,6 @@ st.set_page_config(
 
 
 MAX_MIN_DISTANCE_THRESHOLD = 50
-
 
 
 def convert_healthkit_to_sqlite():
@@ -294,7 +295,6 @@ def map_walks():
 
 
 def review_walk_labels():
-
     display_columns = [
         "walk_group",
         "index",
