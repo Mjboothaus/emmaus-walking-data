@@ -1,6 +1,8 @@
 *.gpx
 .venv*
 .venv/
+data/
+.env.OFF
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
